@@ -1,36 +1,48 @@
-{{ config(materialized='table') }}
-
-with customers as (
+with stg_customers as (
     select * from {{ ref('stg_customers') }}
 ),
-orders as (
+stg_orders as (
     select * from {{ ref('stg_orders') }}
 ),
-payments as (
-		select * from {{ ref('stg_payments') }}
+payment_amount_per_order AS (
+    SELECT *
+    FROM {{ ref('payment_amount_per_order') }}
 ),
-customer_order_aggregates as (
+stg_distinct_orders AS (
+    SELECT DISTINCT customer_id, order_id
+    FROM {{ ref('stg_orders') }}
+),
+customer_order_amounts AS (
+    SELECT payment_amount_per_order.order_id, 
+           stg_distinct_orders.customer_id, 
+           payment_amount_per_order.amount_australian_dollar
+    FROM payment_amount_per_order
+    INNER JOIN stg_distinct_orders
+    USING (order_id)
+),
+customer_grouped_details AS (
     select
-        orders.customer_id,
-        min(orders.order_date) as first_order_date,
-        max(orders.order_date) as most_recent_order_date,
-        count(orders.order_id) as number_of_orders,
-		SUM(payments.amount_australian_dollar) as total_order_amount_australian_dollar
-    from orders
-	LEFT JOIN payments
-	ON payments.order_id = orders.order_id
-    group by 1
+        customer_id,
+        min(stg_orders.order_date) as first_order_date,
+        max(stg_orders.order_date) as most_recent_order_date,
+        count(customer_order_amounts.order_id) AS count_orders,
+        sum(customer_order_amounts.amount_australian_dollar) AS amount_australian_dollar
+    FROM customer_order_amounts
+    INNER JOIN stg_orders 
+    USING (customer_id)
+    GROUP BY 1
 ),
 final as (
     select
-        customers.customer_id,
-        customers.first_name,
-        customers.last_name,
-        customer_order_aggregates.first_order_date,
-        customer_order_aggregates.most_recent_order_date,
-        coalesce(customer_order_aggregates.number_of_orders, 0) as number_of_orders,
-		customer_order_aggregates.total_order_amount_australian_dollar
-    from customers
-    inner join customer_order_aggregates using (customer_id)
+        stg_customers.customer_id,
+        stg_customers.first_name,
+        stg_customers.last_name,
+        customer_grouped_details.first_order_date,
+        customer_grouped_details.most_recent_order_date,
+        coalesce(customer_grouped_details.count_orders, 0) as count_orders,
+		customer_grouped_details.amount_australian_dollar
+    from stg_customers
+    inner join customer_grouped_details 
+    using (customer_id)
 )
 select * from final
