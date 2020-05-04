@@ -1,17 +1,24 @@
-WITH payment_amount_per_order AS (
+WITH stg_orders AS (
     SELECT *
-    FROM {{ ref('payment_amount_per_order') }}
-),
-stg_distinct_orders AS (
-    SELECT DISTINCT customer_id, order_id
     FROM {{ ref('stg_orders') }}
 ),
+stg_payments AS (
+    SELECT *
+    FROM {{ ref('stg_payments') }}
+),
+payment_orders AS (
+    SELECT stg_payments.order_id, 
+           SUM(stg_payments.amount_usd_cents) AS amount_usd_cents
+    FROM stg_payments
+    GROUP BY 1 
+)
 final AS (
-    SELECT stg_distinct_orders.order_id, 
-           stg_distinct_orders.customer_id, 
-           payment_amount_per_order.amount_australian_dollar
-    FROM payment_amount_per_order
-    INNER JOIN stg_distinct_orders
+    SELECT payment_orders.order_id, 
+           stg_orders.customer_id, 
+           stg_orders.order_date,
+           COALESCE(payment_orders.amount_usd_cents, 0) AS amount_usd_cents
+    FROM payment_orders
+    LEFT JOIN stg_orders
     USING (order_id)
 )
 SELECT *

@@ -23,14 +23,3 @@ models:
           - relationships:
               to: ref('stg_customers')
               field: customer_id
-  - name: stg_payments
-    columns: 
-      - name: payment_id
-        tests:
-          - unique
-          - not_null
-      - name: order_id
-        tests:
-          - relationships:
-              to: ref('stg_orders')
-              field: order_id

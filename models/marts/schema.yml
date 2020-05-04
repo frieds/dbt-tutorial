@@ -1,11 +1,5 @@
 version: 2
 models:
-  - name: customers
-    columns:
-      - name: customer_id
-        tests:
-          - unique
-          - not_null
   - name: dim_customers
     columns: 
       - name: customer_id
@@ -26,4 +20,8 @@ models:
     columns:
       - name: order_id
         tests:
+          - not null
+          - unique
+      - name: customer_id
+        tests: 
           - not null
