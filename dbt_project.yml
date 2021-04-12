@@ -32,6 +32,17 @@ clean-targets:         # directories to be removed by `dbt clean`
 # using the `{{ config(...) }}` macro.
 models:
   jaffle_shop:
-      # Applies to all files under models/example/
+      # by default sets all models in that folder to be of type table (will be overwritten by below code)
+      materialized: table
+      
+      # sets all models in models/intermediate to be views
+      intermediate:
+        materialized: view
+
+      # sets all models in models/marts folder to be tables
+      marts:
+        materialized: table
+
+      # sets all models in models/staging/ folder to be views
       example:
-          materialized: view
+        materialized: view

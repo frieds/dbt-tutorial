@@ -1,0 +1,9 @@
+version: 2
+models:
+  - name: stg_payments
+    description: incoming streaming data on payments (could be multiple per order)
+    columns:
+      - name: payment_id
+        tests:
+          - unique
+          - not_null
